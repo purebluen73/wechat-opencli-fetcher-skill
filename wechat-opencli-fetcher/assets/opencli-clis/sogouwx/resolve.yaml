@@ -1,0 +1,30 @@
+site: sogouwx
+name: resolve
+description: Resolve a Sogou Weixin redirect URL to the final page URL in a real browser
+domain: weixin.sogou.com
+strategy: public
+browser: true
+
+args:
+  url:
+    type: string
+    required: true
+    description: Full Sogou redirect URL
+
+pipeline:
+  - navigate: ${{ args.url }}
+  - evaluate: |
+      (() => {
+        const body = document.body?.innerText?.trim() || '';
+        return [{
+          title: document.title || '',
+          final_url: location.href,
+          host: location.host,
+          body_preview: body.slice(0, 500),
+        }];
+      })()
+
+columns:
+  - title
+  - final_url
+  - host

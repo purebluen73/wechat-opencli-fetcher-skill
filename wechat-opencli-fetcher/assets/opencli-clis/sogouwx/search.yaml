@@ -1,0 +1,64 @@
+site: sogouwx
+name: search
+description: Search Sogou Weixin article results for a URL-encoded query string
+domain: weixin.sogou.com
+strategy: public
+browser: true
+
+args:
+  query_encoded:
+    type: string
+    required: true
+    description: URL-encoded Sogou Weixin query text
+  page:
+    type: int
+    default: 1
+    description: Search result page number
+  limit:
+    type: int
+    default: 10
+    description: Number of items to return
+
+pipeline:
+  - navigate: >-
+      https://weixin.sogou.com/weixin?type=2&query=${{ args.query_encoded }}&page=${{ args.page | default(1) }}
+  - evaluate: |
+      (() => {
+        const limit = Number(${{ args.limit | default(10) }});
+        const parseTs = (scriptText) => {
+          const m = (scriptText || '').match(/timeConvert\('(\d+)'\)/);
+          if (!m) return null;
+          const ts = Number(m[1]);
+          if (!ts) return null;
+          return {
+            publish_ts: ts,
+            publish_time: new Date(ts * 1000).toISOString(),
+          };
+        };
+        return Array.from(document.querySelectorAll('ul.news-list > li'))
+          .slice(0, limit)
+          .map((li, idx) => {
+            const a = li.querySelector('h3 a');
+            const title = a?.textContent?.trim() || '';
+            const href = a?.href || '';
+            const account = li.querySelector('.s-p .all-time-y2')?.textContent?.trim() || '';
+            const summary = li.querySelector('.txt-info')?.textContent?.trim() || '';
+            const tsInfo = parseTs(li.querySelector('.s-p .s2 script')?.textContent || '');
+            return {
+              rank: idx + 1,
+              title,
+              account,
+              summary,
+              sogou_url: href,
+              publish_ts: tsInfo?.publish_ts || null,
+              publish_time: tsInfo?.publish_time || null,
+            };
+          });
+      })()
+
+columns:
+  - rank
+  - title
+  - account
+  - publish_time
+  - sogou_url

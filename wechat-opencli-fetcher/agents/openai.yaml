@@ -1,0 +1,4 @@
+interface:
+  display_name: "WeChat OpenCLI Fetcher"
+  short_description: "Fetch WeChat official account articles via opencli and WeSpy"
+  default_prompt: "Use this skill to search, resolve, and fetch recent WeChat official account articles with opencli plus WeSpy."
